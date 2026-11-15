@@ -4,7 +4,7 @@ KMeans 聚类的真实业务分析小型项目。完整模拟客户、痛点、�
 
 ## 模块与业务流程
 数据接入（JSON/CSV、字段验证、批次指纹）→ 参数化分析（异步 Python worker）→ 结果复核（指标、图形、明细、解释、批准）→ 定时分发（本地收件箱、CSV/JSON、SHA256）；另有业务总览和审计轨迹。
-三个贯穿全栈的实体：Dataset 数据批次、Job 分析任务、Report 分发计划；辅助 User、Audit、Delivery。
+三个贯穿全栈的实体：Dataset 数据批次、Job 分析任务、Report 分发计划；辅助 User、Audit、Delivery。Product 与 ConclusionVersion 维护各产品现行工艺结论：负责人从已批准分析发布新版本，或回退到历史结论（回退同样生成新版本）；发布需携带看到的现行版本号，并发只接受一个，过期申请返回冲突，同一请求重试不新增版本。
 
 ## 快速启动
 ```bash
@@ -33,7 +33,7 @@ Role 枚举：admin/analyst/viewer；JobStatus：queued/running/completed/failed
 
 ## 环境变量与 Docker
 COMPOSE_PROJECT_NAME=batch-clusters；FRONTEND_PORT=18209；BACKEND_PORT=19209；DB_PORT=17709；DB_PASSWORD、JWT_SECRET 见 .env.example；SEED_DEMO 默认 true。共享命名产物卷供后端下载与 worker 写入，数据库/Redis 各持久卷。
-恰好五服务均有健康检查。Redis 队列加 SQL 排队状态兜底；worker 按 next_run 生成本地收件箱文件。周期 60 秒至 30 天。分发结果为批准分析的固定快照；若需新数据重新计算并建立新计划。当前不连接邮件或企业聊天。
+恰好五服务均有健康检查。Redis 队列加 SQL 排队状态兜底；worker 按 next_run 生成本地收件箱文件。周期 60 秒至 30 天。分发计划有两种来源：固定分析快照（传统行为不变），或订阅产品结论——每期开始固定届时现行版本、结果与接收组，发布或回退不改变在途期次，失败重试不改换内容，下一期采用届时现行版本；产品未发布结论则不出刊。每份归档记录实际采用的结论版本，可在分发档案页追溯。当前不连接邮件或企业聊天。
 错误响应、请求编号、Redis 每 IP 每分钟 240 次限流、JWT 和数据库操作审计。演示密钥与密码仅供本机模拟；生产部署前配置独立密钥与账号。
 
 ## 数据与验收

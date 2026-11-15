@@ -5,7 +5,9 @@ class Report(Base):
     __tablename__ = 'reports'
     id: Mapped[int] = mapped_column(primary_key=True)
     name: Mapped[str] = mapped_column(String(160))
-    job_id: Mapped[int] = mapped_column(ForeignKey('jobs.id'))
+    job_id: Mapped[int | None] = mapped_column(ForeignKey('jobs.id'), nullable=True)
+    product_id: Mapped[int | None] = mapped_column(ForeignKey('products.id'), nullable=True)
+    pending_version_id: Mapped[int | None] = mapped_column(ForeignKey('conclusion_versions.id'), nullable=True)
     destination: Mapped[str] = mapped_column(String(120))
     interval_seconds: Mapped[int]
     next_run: Mapped[float] = mapped_column(Double)
@@ -18,3 +20,4 @@ class Delivery(Base):
     checksum: Mapped[str] = mapped_column(String(64))
     filename: Mapped[str] = mapped_column(String(160))
     destination: Mapped[str] = mapped_column(String(120))
+    conclusion_version_id: Mapped[int | None] = mapped_column(ForeignKey('conclusion_versions.id'), nullable=True)

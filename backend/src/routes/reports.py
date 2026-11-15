@@ -4,7 +4,7 @@ from fastapi.responses import FileResponse
 from sqlalchemy import select
 from src.config.database import get_db
 from src.config.settings import ARTIFACT_DIR
-from src.models import Report, Delivery
+from src.models import Report, Delivery, ConclusionVersion, Product
 from src.schemas.report import ReportInput
 from src.middlewares.auth import current_user, admin_only
 from src.services import reports
@@ -16,7 +16,7 @@ def listing(db=Depends(get_db),u=Depends(current_user)):
     return [report_dict(r) for r in db.scalars(select(Report).order_by(Report.id.desc()))]
 @router.post('/reports',status_code=201)
 def create(data:ReportInput,db=Depends(get_db),u=Depends(admin_only)):
-    r=reports.create(db,data); record(db,u.email,'report.schedule',{'id':r.id,'destination':r.destination}); db.commit()
+    r=reports.create(db,data); record(db,u.email,'report.schedule',{'id':r.id,'destination':r.destination,'product_id':r.product_id}); db.commit()
     return report_dict(r)
 @router.post('/reports/{id}/toggle')
 def toggle(id:int,db=Depends(get_db),u=Depends(admin_only)):
@@ -26,7 +26,17 @@ def toggle(id:int,db=Depends(get_db),u=Depends(admin_only)):
     return report_dict(r)
 @router.get('/deliveries')
 def deliveries(db=Depends(get_db),u=Depends(current_user)):
-    return [delivery_dict(d) for d in db.scalars(select(Delivery).order_by(Delivery.id.desc()).limit(100))]
+    out=[]
+    for d in db.scalars(select(Delivery).order_by(Delivery.id.desc()).limit(100)):
+        item=delivery_dict(d)
+        if d.conclusion_version_id:
+            v=db.get(ConclusionVersion,d.conclusion_version_id)
+            if v:
+                item['version']=v.version
+                p=db.get(Product,v.product_id)
+                item['product']=p.name if p else ''
+        out.append(item)
+    return out
 @router.get('/deliveries/{id}/download')
 def download(id:int,format:str='csv',db=Depends(get_db),u=Depends(current_user)):
     d=db.get(Delivery,id)
